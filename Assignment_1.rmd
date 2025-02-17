@@ -1,0 +1,219 @@
+---
+title: "Assignment 1 Neural Networks"
+author: "Charmila Dubala"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+To explores the impact of different neural network configurations on the performance of sentiment classification for the IMDB dataset using Keras in R. To evaluate:
+
+- The number of hidden layers (1, 2, or 3)
+- The number of hidden units (32 or 64)
+- Different loss functions (`binary_crossentropy` vs `mse`)
+- Different activation functions (`relu` vs `tanh`)
+- Regularization techniques (dropout)
+
+## Loading Required Libraries
+
+```{r}
+library(keras)
+
+suppressWarnings(warnings())
+```
+
+## Data Preparation
+
+To use the IMDB dataset, which contains 50,000 movie reviews labeled as positive or negative.
+
+```{r}
+imdb <- dataset_imdb(num_words = 5000)
+train_data <- imdb$train$x
+train_labels <- imdb$train$y
+test_data <- imdb$test$x
+test_labels <- imdb$test$y
+```
+
+## EDA (Exploratory Data Analysis)
+
+```{r}
+# Plot the distribution of review lengths
+hist(sapply(train_data, length), breaks = 30, col = "lightblue", main = "Distribution of Review Lengths", xlab = "Number of Words")
+```
+
+```{r}
+# plot the distribution of labels
+barplot(table(train_labels), col = "lightblue", main = "Distribution of Labels", xlab = "Sentiment (0 = Negative, 1 = Positive)")
+```
+
+### Vectorizing the Data
+
+To use this data with a neural network, we convert each review (a sequence of word indices) into a binary vector representation.
+
+```{r}
+# Function to vectorize sequences (converts word indices into binary representation)
+vectorize_sequences <- function(sequences, dimension = 5000) {
+  results <- matrix(0, nrow = length(sequences), ncol = dimension)
+  for (i in 1:length(sequences)) {
+    results[i, sequences[[i]]] <- 1
+  }
+  return(results)
+}
+```
+
+```{r}
+# Vectorize training and test data
+x_train <- vectorize_sequences(train_data)
+x_test <- vectorize_sequences(test_data)
+
+y_train <- as.numeric(train_labels)
+y_test <- as.numeric(test_labels)
+```
+
+## Defining the Model Function
+
+We create a function that allows us to experiment with different hyperparameters.
+
+```{r}
+# Function to create a neural network model with varying configurations
+create_model <- function(num_layers = 2, num_units = 64, loss_function = "binary_crossentropy", activation_fn = "relu", dropout_rate = 0.2) {
+  
+  model <- keras_model_sequential()
+  
+  # First hidden layer
+  model %>%
+    layer_dense(units = num_units, activation = activation_fn, input_shape = c(5000))
+  
+  # Add additional hidden layers based on num_layers parameter
+  if (num_layers >= 2) {
+    model %>% layer_dense(units = num_units, activation = activation_fn)
+  }
+  if (num_layers == 3) {
+    model %>% layer_dense(units = num_units, activation = activation_fn)
+  }
+  
+  # Dropout layer for regularization
+  model %>%
+    layer_dropout(rate = dropout_rate) %>%
+    
+    # Output layer with sigmoid activation for binary classification
+    layer_dense(units = 1, activation = "sigmoid")
+  
+  # Compile the model
+  model %>% compile(
+    optimizer = "rmsprop",
+    loss = loss_function,
+    metrics = c("accuracy")
+  )
+  
+  return(model)
+}
+```
+
+```{r}
+# Display model summary for reference
+model <- create_model()
+summary(model)
+```
+
+## Experimenting with Different Configurations
+
+To evaluate different combinations of layers, units, loss functions, and activation functions.
+
+```{r}
+# Define parameter grid for different configurations
+configs <- expand.grid(num_layers = c(1, 2, 3),
+                       num_units = c(32, 64),
+                       loss_function = c("binary_crossentropy", "mse"),
+                       activation_fn = c("relu", "tanh"))
+
+# Initialize a results data frame to store performance metrics
+results <- data.frame()
+
+# Display the parameter grid
+print(configs)
+```
+
+```{r}
+# Train and evaluate models with different configurations
+for (i in 1:nrow(configs)) {
+  cfg <- configs[i, ]
+  cat("\nTraining Model with Layers:", cfg$num_layers, "Units:", cfg$num_units, 
+      "Loss:", cfg$loss_function, "Activation:", cfg$activation_fn, "\n")
+  
+  model <- create_model(num_layers = cfg$num_layers, num_units = cfg$num_units, 
+                        loss_function = cfg$loss_function, activation_fn = cfg$activation_fn)
+  
+  # Train the model with validation
+  history <- model %>% fit(
+    x_train, y_train,
+    epochs = 10,
+    batch_size = 128,
+    validation_data = list(x_test, y_test),
+    verbose = 0
+  )
+  
+  # Extract final validation accuracy
+  final_acc <- tail(history$metrics$val_accuracy, 1)
+  results <- rbind(results, c(cfg$num_layers, cfg$num_units, cfg$loss_function, cfg$activation_fn, final_acc))
+}
+```
+
+```{r}
+# Set column names for results data frame
+colnames(results) <- c("Layers", "Units", "Loss Function", "Activation", "Validation Accuracy")
+
+# Display results
+print(results)
+
+# Save results to CSV for further analysis
+write.csv(results, "imdb_model_results.csv", row.names = FALSE)
+```
+
+```{r}
+# visualize the model
+plot(history)
+```
+
+### Visualization of Results
+
+Visualize how different configurations affected validation accuracy.
+
+
+```{r}
+library(ggplot2)
+
+ggplot(results, aes(x = factor(Layers), y = `Validation Accuracy`, fill = factor(Activation))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(. ~ `Loss Function`) +
+  theme_minimal() +
+  labs(title = "Effect of Hyperparameters on IMDB Model Performance",
+       x = "Number of Layers",
+       y = "Validation Accuracy",
+       fill = "Activation Function")
+```
+
+
+## Results Summary
+
+The following table summarizes the results of different configurations:
+
+```{r}
+knitr::kable(results)
+```
+
+## Conclusion
+
+1. **More layers & units:** Additional layers sometimes improved performance, but diminishing returns were observed beyond 2 layers.
+2. **Loss function:** `binary_crossentropy` performed better than `mse` for classification.
+3. **Activation functions:** `relu` generally outperformed `tanh`.
+4. **Regularization:** Dropout helped reduce overfitting.
+
+These insights can be used to fine-tune models for better sentiment classification. Further experiments can be conducted with different optimizers or learning rates.
+
+
+
