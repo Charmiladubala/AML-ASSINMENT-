@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Assignment 3: Time-Series Data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Time_Series_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Time_Series_files/libs/quarto-html/quarto.js"></script>
+<script src="Time_Series_files/libs/quarto-html/popper.min.js"></script>
+<script src="Time_Series_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Time_Series_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Time_Series_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Time_Series_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Time_Series_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Time_Series_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Time_Series_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Assignment 3: Time-Series Data</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Import necessary libraries</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tensorflow.keras <span class="im">import</span> models, layers</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Purpose: The purpose of this assignment is to apply Recurrent Neural Networks (RNNs) to time-series data, specifically focusing on weather forecasting. The dataset provided contains weather observations from various global locations, with features like temperature_celsius, wind_mph, humidity, etc., collected at different timestamps (e.g., 2024-05-16 and 2025-04-05). The goal is to predict temperature_celsius using RNNs and optimize performance.</p>
+<p>Module Outcome (MLO 1): Apply RNNs to a time-series problem. This is achieved by implementing LSTM, GRU, and Conv1D+RNN models to forecast temperature, a classic time-series task</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the dataset</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> pd.read_csv(<span class="st">'/content/GlobalWeatherRepository.csv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="7c04203b-7f10-426c-c937-2ebd88ab1726" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Dataset loaded. Shape:"</span>, data.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Dataset loaded. Shape: (62948, 41)</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="69b9fc7f-2cd9-4870-ab8f-087077be6467" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(data.head())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       country     location_name  latitude  longitude        timezone  \
+0  Afghanistan             Kabul     34.52      69.18      Asia/Kabul   
+1      Albania            Tirana     41.33      19.82   Europe/Tirane   
+2      Algeria           Algiers     36.76       3.05  Africa/Algiers   
+3      Andorra  Andorra La Vella     42.50       1.52  Europe/Andorra   
+4       Angola            Luanda     -8.84      13.23   Africa/Luanda   
+
+   last_updated_epoch      last_updated  temperature_celsius  \
+0          1715849100  2024-05-16 13:15                 26.6   
+1          1715849100  2024-05-16 10:45                 19.0   
+2          1715849100  2024-05-16 09:45                 23.0   
+3          1715849100  2024-05-16 10:45                  6.3   
+4          1715849100  2024-05-16 09:45                 26.0   
+
+   temperature_fahrenheit condition_text  ...  air_quality_PM2.5  \
+0                    79.8  Partly Cloudy  ...                8.4   
+1                    66.2  Partly cloudy  ...                1.1   
+2                    73.4          Sunny  ...               10.4   
+3                    43.3  Light drizzle  ...                0.7   
+4                    78.8  Partly cloudy  ...              183.4   
+
+   air_quality_PM10  air_quality_us-epa-index air_quality_gb-defra-index  \
+0              26.6                         1                          1   
+1               2.0                         1                          1   
+2              18.4                         1                          1   
+3               0.9                         1                          1   
+4             262.3                         5                         10   
+
+    sunrise    sunset  moonrise   moonset      moon_phase  moon_illumination  
+0  04:50 AM  06:50 PM  12:12 PM  01:11 AM  Waxing Gibbous                 55  
+1  05:21 AM  07:54 PM  12:58 PM  02:14 AM  Waxing Gibbous                 55  
+2  05:40 AM  07:50 PM  01:15 PM  02:14 AM  Waxing Gibbous                 55  
+3  06:31 AM  09:11 PM  02:12 PM  03:31 AM  Waxing Gibbous                 55  
+4  06:12 AM  05:55 PM  01:17 PM  12:38 AM  Waxing Gibbous                 55  
+
+[5 rows x 41 columns]</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="f7be4e59-6eec-4e08-a4f8-20b711d8c33a" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># display the information</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(data.info())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 62948 entries, 0 to 62947
+Data columns (total 41 columns):
+ #   Column                        Non-Null Count  Dtype  
+---  ------                        --------------  -----  
+ 0   country                       62948 non-null  object 
+ 1   location_name                 62948 non-null  object 
+ 2   latitude                      62948 non-null  float64
+ 3   longitude                     62948 non-null  float64
+ 4   timezone                      62948 non-null  object 
+ 5   last_updated_epoch            62948 non-null  int64  
+ 6   last_updated                  62948 non-null  object 
+ 7   temperature_celsius           62948 non-null  float64
+ 8   temperature_fahrenheit        62948 non-null  float64
+ 9   condition_text                62948 non-null  object 
+ 10  wind_mph                      62948 non-null  float64
+ 11  wind_kph                      62948 non-null  float64
+ 12  wind_degree                   62948 non-null  int64  
+ 13  wind_direction                62948 non-null  object 
+ 14  pressure_mb                   62948 non-null  float64
+ 15  pressure_in                   62948 non-null  float64
+ 16  precip_mm                     62948 non-null  float64
+ 17  precip_in                     62948 non-null  float64
+ 18  humidity                      62948 non-null  int64  
+ 19  cloud                         62948 non-null  int64  
+ 20  feels_like_celsius            62948 non-null  float64
+ 21  feels_like_fahrenheit         62948 non-null  float64
+ 22  visibility_km                 62948 non-null  float64
+ 23  visibility_miles              62948 non-null  float64
+ 24  uv_index                      62948 non-null  float64
+ 25  gust_mph                      62948 non-null  float64
+ 26  gust_kph                      62948 non-null  float64
+ 27  air_quality_Carbon_Monoxide   62948 non-null  float64
+ 28  air_quality_Ozone             62948 non-null  float64
+ 29  air_quality_Nitrogen_dioxide  62948 non-null  float64
+ 30  air_quality_Sulphur_dioxide   62948 non-null  float64
+ 31  air_quality_PM2.5             62948 non-null  float64
+ 32  air_quality_PM10              62948 non-null  float64
+ 33  air_quality_us-epa-index      62948 non-null  int64  
+ 34  air_quality_gb-defra-index    62948 non-null  int64  
+ 35  sunrise                       62948 non-null  object 
+ 36  sunset                        62948 non-null  object 
+ 37  moonrise                      62948 non-null  object 
+ 38  moonset                       62948 non-null  object 
+ 39  moon_phase                    62948 non-null  object 
+ 40  moon_illumination             62948 non-null  int64  
+dtypes: float64(23), int64(7), object(11)
+memory usage: 19.7+ MB
+None</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="38234d97-be22-4224-fc80-c45b61d3a8ea" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Display summary of data</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(data.describe())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           latitude     longitude  last_updated_epoch  temperature_celsius  \
+count  62948.000000  62948.000000        6.294800e+04         62948.000000   
+mean      19.134929     22.179177        1.729876e+09            22.110825   
+std       24.474904     65.819465        8.125689e+06             9.589799   
+min      -41.300000   -175.200000        1.715849e+09           -24.900000   
+25%        3.750000     -6.836100        1.722946e+09            16.500000   
+50%       17.250000     23.316700        1.729934e+09            24.900000   
+75%       40.400000     50.580000        1.736936e+09            28.400000   
+max       64.150000    179.220000        1.743844e+09            49.200000   
+
+       temperature_fahrenheit      wind_mph      wind_kph   wind_degree  \
+count            62948.000000  62948.000000  62948.000000  62948.000000   
+mean                71.801096      8.291684     13.348041    168.720150   
+std                 17.261414      9.086369     14.621224    103.720176   
+min                -12.800000      2.200000      3.600000      1.000000   
+25%                 61.700000      4.000000      6.500000     80.000000   
+50%                 76.800000      6.900000     11.200000    160.000000   
+75%                 83.100000     11.400000     18.400000    256.000000   
+max                120.600000   1841.200000   2963.200000    360.000000   
+
+        pressure_mb   pressure_in  ...      gust_kph  \
+count  62948.000000  62948.000000  ...  62948.000000   
+mean    1014.159560     29.947512  ...     19.074341   
+std       13.296308      0.392621  ...     16.497726   
+min      947.000000     27.960000  ...      3.600000   
+25%     1010.000000     29.830000  ...     10.800000   
+50%     1013.000000     29.920000  ...     16.600000   
+75%     1018.000000     30.050000  ...     25.300000   
+max     3006.000000     88.770000  ...   2970.400000   
+
+       air_quality_Carbon_Monoxide  air_quality_Ozone  \
+count                 62948.000000       62948.000000   
+mean                    528.627671          63.667505   
+std                     928.290545          35.846099   
+min                   -9999.000000           0.000000   
+25%                     227.550000          39.700000   
+50%                     329.300000          61.000000   
+75%                     510.600000          83.000000   
+max                   38879.398000         480.700000   
+
+       air_quality_Nitrogen_dioxide  air_quality_Sulphur_dioxide  \
+count                  62948.000000                 62948.000000   
+mean                      15.226404                    11.441904   
+std                       26.362592                    47.799275   
+min                        0.000000                 -9999.000000   
+25%                        0.925000                     0.740000   
+50%                        3.515000                     2.400000   
+75%                       16.800000                     9.065000   
+max                      427.700000                   521.330000   
+
+       air_quality_PM2.5  air_quality_PM10  air_quality_us-epa-index  \
+count       62948.000000      62948.000000              62948.000000   
+mean           25.720022         52.030255                  1.737307   
+std            44.177590        160.043783                  0.994018   
+min             0.185000      -1848.150000                  1.000000   
+25%             5.900000          9.065000                  1.000000   
+50%            13.900000         21.090000                  1.000000   
+75%            30.155000         46.250000                  2.000000   
+max          1614.100000       6037.290000                  6.000000   
+
+       air_quality_gb-defra-index  moon_illumination  
+count                62948.000000       62948.000000  
+mean                     2.731906          48.872085  
+std                      2.604389          34.968891  
+min                      1.000000           0.000000  
+25%                      1.000000          14.000000  
+50%                      2.000000          48.000000  
+75%                      3.000000          83.000000  
+max                     10.000000         100.000000  
+
+[8 rows x 30 columns]</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="4110d340-9510-41c7-f9bd-f6bfbfaa77e7" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the distribution of data</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>data.hist(bins<span class="op">=</span><span class="dv">50</span>, figsize<span class="op">=</span>(<span class="dv">20</span>, <span class="dv">15</span>))</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="Time_Series_files/figure-html/cell-8-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-outputid="b69d9346-d3c2-42f3-c8c1-0f8b9b07d313" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize the data</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">6</span>))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>plt.plot(data[<span class="st">'temperature_celsius'</span>], label<span class="op">=</span><span class="st">'Temperature'</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Temperature Over Time'</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Time'</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Temperature (Celsius)'</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>plt.legend()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>&lt;matplotlib.legend.Legend at 0x7cc794316390&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="Time_Series_files/figure-html/cell-9-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract temperature data and sort by timestamp</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>data[<span class="st">'last_updated'</span>] <span class="op">=</span> pd.to_datetime(data[<span class="st">'last_updated'</span>])</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> data.sort_values(<span class="st">'last_updated'</span>)  <span class="co"># Ensure chronological order</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>temp <span class="op">=</span> data[<span class="st">'temperature_celsius'</span>].values</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define sequence length</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>time_steps <span class="op">=</span> <span class="dv">5</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to create sequences</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> create_sequences(data, seq_length):</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    X, y <span class="op">=</span> [], []</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(data) <span class="op">-</span> seq_length):</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        X.append(data[i:i <span class="op">+</span> seq_length])</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        y.append(data[i <span class="op">+</span> seq_length])</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(X), np.array(y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Normalize the temperature data</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>scaler <span class="op">=</span> StandardScaler()</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>temp_scaled <span class="op">=</span> scaler.fit_transform(temp.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="7ad5f38e-093b-486b-8dd4-eca1a3c5b338" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create sequences</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> create_sequences(temp_scaled, time_steps)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Sequences created. X shape:"</span>, X.shape, <span class="st">"y shape:"</span>, y.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sequences created. X shape: (62943, 5, 1) y shape: (62943, 1)</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="f756e656-0d8d-47a1-a1e4-932e97d886c3" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Split into train, validation, and test sets</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>train_size <span class="op">=</span> <span class="bu">int</span>(<span class="bu">len</span>(X) <span class="op">*</span> <span class="fl">0.7</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>val_size <span class="op">=</span> <span class="bu">int</span>(<span class="bu">len</span>(X) <span class="op">*</span> <span class="fl">0.15</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>X_train, y_train <span class="op">=</span> X[:train_size], y[:train_size]</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>X_val, y_val <span class="op">=</span> X[train_size:train_size <span class="op">+</span> val_size], y[train_size:train_size <span class="op">+</span> val_size]</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>X_test, y_test <span class="op">=</span> X[train_size <span class="op">+</span> val_size:], y[train_size <span class="op">+</span> val_size:]</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Train shape:"</span>, X_train.shape, <span class="st">"Val shape:"</span>, X_val.shape, <span class="st">"Test shape:"</span>, X_test.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Train shape: (44060, 5, 1) Val shape: (9441, 5, 1) Test shape: (9442, 5, 1)</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reshape for RNN input (samples, timesteps, features)</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> X_train.reshape((X_train.shape[<span class="dv">0</span>], X_train.shape[<span class="dv">1</span>], <span class="dv">1</span>))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>X_val <span class="op">=</span> X_val.reshape((X_val.shape[<span class="dv">0</span>], X_val.shape[<span class="dv">1</span>], <span class="dv">1</span>))</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>X_test <span class="op">=</span> X_test.reshape((X_test.shape[<span class="dv">0</span>], X_test.shape[<span class="dv">1</span>], <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The code preprocesses the dataset by sorting it chronologically using last_updated and extracting temperature_celsius. It creates sequences with a lookback period (time_steps=5), transforming the data into a format suitable for RNNs: (samples, timesteps, features).</p>
+<p>Three RNN-based models are implemented: * Model 1: Stacked LSTM with 64 and 32 units. * Model 2: Stacked GRU with 64 and 32 units. * Model 3: Conv1D (32 filters, kernel size 3) followed by an LSTM with 32 units.</p>
+<p>These models process the sequential temperature data to predict the next value, fulfilling the core requirement of applying RNNs.</p>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to build and train models</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_and_train(model, X_train, y_train, X_val, y_val, epochs<span class="op">=</span><span class="dv">20</span>, batch_size<span class="op">=</span><span class="dv">32</span>):</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    model.<span class="bu">compile</span>(optimizer<span class="op">=</span><span class="st">'adam'</span>, loss<span class="op">=</span><span class="st">'mae'</span>)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    history <span class="op">=</span> model.fit(X_train, y_train, validation_data<span class="op">=</span>(X_val, y_val),</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                        epochs<span class="op">=</span>epochs, batch_size<span class="op">=</span>batch_size, verbose<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> history</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="04f60a4a-a1c2-4fa9-dd21-2d0bd37e79f3" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 1: Stacked LSTM</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>model1 <span class="op">=</span> models.Sequential([</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    layers.LSTM(<span class="dv">64</span>, return_sequences<span class="op">=</span><span class="va">True</span>, input_shape<span class="op">=</span>(time_steps, <span class="dv">1</span>)),</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    layers.LSTM(<span class="dv">32</span>),</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    layers.Dense(<span class="dv">1</span>)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Training Model 1: Stacked LSTM"</span>)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>history1 <span class="op">=</span> build_and_train(model1, X_train, y_train, X_val, y_val)</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>val_mae1 <span class="op">=</span> <span class="bu">min</span>(history1.history[<span class="st">'val_loss'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.11/dist-packages/keras/src/layers/rnn/rnn.py:200: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(**kwargs)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Training Model 1: Stacked LSTM
+Epoch 1/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 12s 6ms/step - loss: 0.6391 - val_loss: 0.9429
+Epoch 2/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 6ms/step - loss: 0.6285 - val_loss: 0.9451
+Epoch 3/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6325 - val_loss: 0.9523
+Epoch 4/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6307 - val_loss: 0.9469
+Epoch 5/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 7s 5ms/step - loss: 0.6289 - val_loss: 0.9457
+Epoch 6/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6308 - val_loss: 0.9431
+Epoch 7/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 6ms/step - loss: 0.6288 - val_loss: 0.9491
+Epoch 8/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6299 - val_loss: 0.9555
+Epoch 9/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 6ms/step - loss: 0.6298 - val_loss: 0.9487
+Epoch 10/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 5ms/step - loss: 0.6272 - val_loss: 0.9511
+Epoch 11/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6283 - val_loss: 0.9457
+Epoch 12/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6285 - val_loss: 0.9572
+Epoch 13/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6267 - val_loss: 0.9433
+Epoch 14/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6278 - val_loss: 0.9395
+Epoch 15/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6264 - val_loss: 0.9350
+Epoch 16/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6260 - val_loss: 0.9425
+Epoch 17/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6272 - val_loss: 0.9373
+Epoch 18/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6261 - val_loss: 0.9468
+Epoch 19/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 5ms/step - loss: 0.6229 - val_loss: 0.9392
+Epoch 20/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6276 - val_loss: 0.9460</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="59828e03-82ba-490f-a127-df7df1bf0f80" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 2: Stacked GRU</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>model2 <span class="op">=</span> models.Sequential([</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    layers.GRU(<span class="dv">64</span>, return_sequences<span class="op">=</span><span class="va">True</span>, input_shape<span class="op">=</span>(time_steps, <span class="dv">1</span>)),</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    layers.GRU(<span class="dv">32</span>),</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    layers.Dense(<span class="dv">1</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Training Model 2: Stacked GRU"</span>)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>history2 <span class="op">=</span> build_and_train(model2, X_train, y_train, X_val, y_val)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>val_mae2 <span class="op">=</span> <span class="bu">min</span>(history2.history[<span class="st">'val_loss'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Training Model 2: Stacked GRU
+Epoch 1/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6353 - val_loss: 0.9475
+Epoch 2/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6311 - val_loss: 0.9492
+Epoch 3/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6341 - val_loss: 0.9553
+Epoch 4/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6319 - val_loss: 0.9578
+Epoch 5/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6317 - val_loss: 0.9531
+Epoch 6/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 6ms/step - loss: 0.6301 - val_loss: 0.9476
+Epoch 7/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6309 - val_loss: 0.9618
+Epoch 8/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 5ms/step - loss: 0.6325 - val_loss: 0.9441
+Epoch 9/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 7ms/step - loss: 0.6267 - val_loss: 0.9569
+Epoch 10/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 7ms/step - loss: 0.6324 - val_loss: 0.9511
+Epoch 11/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 5ms/step - loss: 0.6279 - val_loss: 0.9363
+Epoch 12/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6253 - val_loss: 0.9384
+Epoch 13/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6261 - val_loss: 0.9440
+Epoch 14/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6243 - val_loss: 0.9423
+Epoch 15/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6226 - val_loss: 0.9435
+Epoch 16/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 5ms/step - loss: 0.6274 - val_loss: 0.9462
+Epoch 17/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6267 - val_loss: 0.9409
+Epoch 18/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6280 - val_loss: 0.9453
+Epoch 19/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6232 - val_loss: 0.9350
+Epoch 20/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6271 - val_loss: 0.9393</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="4e7e5743-0ed3-4796-a3d8-d749bf44980e" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 3: Conv1D + LSTM</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>model3 <span class="op">=</span> models.Sequential([</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    layers.Conv1D(filters<span class="op">=</span><span class="dv">32</span>, kernel_size<span class="op">=</span><span class="dv">3</span>, activation<span class="op">=</span><span class="st">'relu'</span>, input_shape<span class="op">=</span>(time_steps, <span class="dv">1</span>)),</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    layers.LSTM(<span class="dv">32</span>),</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    layers.Dense(<span class="dv">1</span>)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Training Model 3: Conv1D + LSTM"</span>)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>history3 <span class="op">=</span> build_and_train(model3, X_train, y_train, X_val, y_val)</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>val_mae3 <span class="op">=</span> <span class="bu">min</span>(history3.history[<span class="st">'val_loss'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Training Model 3: Conv1D + LSTM
+Epoch 1/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 5ms/step - loss: 0.6399 - val_loss: 0.9446
+Epoch 2/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 5ms/step - loss: 0.6362 - val_loss: 0.9477
+Epoch 3/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6302 - val_loss: 0.9465
+Epoch 4/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 5ms/step - loss: 0.6315 - val_loss: 0.9520
+Epoch 5/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 7s 5ms/step - loss: 0.6353 - val_loss: 0.9612
+Epoch 6/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 6ms/step - loss: 0.6345 - val_loss: 0.9486
+Epoch 7/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6291 - val_loss: 0.9479
+Epoch 8/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 7s 5ms/step - loss: 0.6311 - val_loss: 0.9446
+Epoch 9/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6253 - val_loss: 0.9470
+Epoch 10/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 6ms/step - loss: 0.6303 - val_loss: 0.9412
+Epoch 11/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 5ms/step - loss: 0.6304 - val_loss: 0.9559
+Epoch 12/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 5ms/step - loss: 0.6277 - val_loss: 0.9544
+Epoch 13/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 5ms/step - loss: 0.6255 - val_loss: 0.9401
+Epoch 14/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6250 - val_loss: 0.9423
+Epoch 15/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 7s 5ms/step - loss: 0.6232 - val_loss: 0.9435
+Epoch 16/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 11s 6ms/step - loss: 0.6301 - val_loss: 0.9390
+Epoch 17/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 5ms/step - loss: 0.6239 - val_loss: 0.9367
+Epoch 18/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 10s 5ms/step - loss: 0.6276 - val_loss: 0.9523
+Epoch 19/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 9s 5ms/step - loss: 0.6222 - val_loss: 0.9420
+Epoch 20/20
+1377/1377 ━━━━━━━━━━━━━━━━━━━━ 8s 6ms/step - loss: 0.6279 - val_loss: 0.9468</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.11/dist-packages/keras/src/layers/convolutional/base_conv.py:107: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="5c114b6a-0dfb-4d66-e1c4-5da8991c1de6" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Select the best model based on validation MAE</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>best_mae <span class="op">=</span> <span class="bu">min</span>(val_mae1, val_mae2, val_mae3)</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>best_model <span class="op">=</span> model1 <span class="cf">if</span> best_mae <span class="op">==</span> val_mae1 <span class="cf">else</span> model2 <span class="cf">if</span> best_mae <span class="op">==</span> val_mae2 <span class="cf">else</span> model3</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Best model MAE: </span><span class="sc">{</span>best_mae<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Best model MAE: 0.9349622130393982</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="096712df-b721-4012-e180-ce03c5967304" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate on test set</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>test_mae <span class="op">=</span> best_model.evaluate(X_test, y_test, verbose<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Test MAE: </span><span class="sc">{</span>test_mae<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Test MAE: 0.7988701462745667</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="b2d11b86-4495-4fcc-e5c1-8107ce5d0502" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot validation MAE</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>))</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>plt.plot(history1.history[<span class="st">'val_loss'</span>], label<span class="op">=</span><span class="ss">f'LSTM (MAE: </span><span class="sc">{</span>val_mae1<span class="sc">:.4f}</span><span class="ss">)'</span>)</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>plt.plot(history2.history[<span class="st">'val_loss'</span>], label<span class="op">=</span><span class="ss">f'GRU (MAE: </span><span class="sc">{</span>val_mae2<span class="sc">:.4f}</span><span class="ss">)'</span>)</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>plt.plot(history3.history[<span class="st">'val_loss'</span>], label<span class="op">=</span><span class="ss">f'Conv1D+LSTM (MAE: </span><span class="sc">{</span>val_mae3<span class="sc">:.4f}</span><span class="ss">)'</span>)</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Validation MAE Over Epochs'</span>)</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Epoch'</span>)</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'MAE'</span>)</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>)</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">'validation_mae_plot.png'</span>)</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="Time_Series_files/figure-html/cell-23-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-outputid="5290cd66-c6f6-4b35-8d13-15775311e12d" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary table</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Model'</span>: [<span class="st">'LSTM'</span>, <span class="st">'GRU'</span>, <span class="st">'Conv1D+LSTM'</span>],</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Validation MAE'</span>: [val_mae1, val_mae2, val_mae3],</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Test MAE'</span>: [test_mae <span class="cf">if</span> best_mae <span class="op">==</span> val_mae1 <span class="cf">else</span> <span class="va">None</span>,</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>                 test_mae <span class="cf">if</span> best_mae <span class="op">==</span> val_mae2 <span class="cf">else</span> <span class="va">None</span>,</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>                 test_mae <span class="cf">if</span> best_mae <span class="op">==</span> val_mae3 <span class="cf">else</span> <span class="va">None</span>]</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Results Summary:"</span>)</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>results.to_csv(<span class="st">'results_summary.csv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Results Summary:
+         Model  Validation MAE  Test MAE
+0         LSTM        0.934973       NaN
+1          GRU        0.934962   0.79887
+2  Conv1D+LSTM        0.936708       NaN</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="638d07af-38b9-4b0f-b411-023e6946614e" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Conclusion</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Conclusion:"</span>)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"The best-performing model was </span><span class="sc">{</span><span class="st">'LSTM'</span> <span class="cf">if</span> best_mae <span class="op">==</span> val_mae1 <span class="cf">else</span> <span class="st">'GRU'</span> <span class="cf">if</span> best_mae <span class="op">==</span> val_mae2 <span class="cf">else</span> <span class="st">'Conv1D+LSTM'</span><span class="sc">}</span><span class="ss"> "</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"with a validation MAE of </span><span class="sc">{</span>best_mae<span class="sc">:.4f}</span><span class="ss"> and test MAE of </span><span class="sc">{</span>test_mae<span class="sc">:.4f}</span><span class="ss">. "</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"This suggests that </span><span class="sc">{</span><span class="st">'stacked recurrent layers'</span> <span class="cf">if</span> best_mae <span class="kw">in</span> [val_mae1, val_mae2] <span class="cf">else</span> <span class="st">'convolutional preprocessing'</span><span class="sc">}</span><span class="ss"> "</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"were most effective for this temperature forecasting task."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Conclusion:
+The best-performing model was GRU with a validation MAE of 0.9350 and test MAE of 0.7989. This suggests that stacked recurrent layers were most effective for this temperature forecasting task.</code></pre>
+</div>
+</div>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
